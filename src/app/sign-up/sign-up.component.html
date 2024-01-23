@@ -1,0 +1,22 @@
+<h1>Sign Up</h1>
+
+<form (submit)="$event.preventDefault();onSingUp()">
+  
+  <label for="username">Username</label>
+  <input id="username" (input)="onChangePasswords($event, 'userName')"/>
+
+  <label for="email">E-mail</label>
+  <input id="email" (input)="onChangePasswords($event, 'email')"/>
+
+  <label for="password">Password</label>
+  <input id="password" type="password" (input)="onChangePasswords($event, 'password')"/>
+
+
+  <label for="passwordRepeat">Password Repeat</label>
+  <input id="passwordRepeat" type="password" (input)="onChangePasswords($event, 'passwordRepeat')" />
+
+  <button
+    [disabled]="isDisabled"
+  >Sign Up</button>
+</form>
+
