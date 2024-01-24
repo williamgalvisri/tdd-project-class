@@ -1,15 +1,29 @@
-import { render, screen,  } from "@testing-library/angular";
+import { render, screen, waitFor,  } from "@testing-library/angular";
+import { SingUpInterface } from "../models/sign-up.model";
+import { HttpClientModule } from "@angular/common/http";
 import { SignUpComponent } from './sign-up.component';
 import userEvent from "@testing-library/user-event";
-import { SingUpInterface } from "../models/sign-up.model";
+import { setupServer } from 'msw/node';
+import { rest } from 'msw';
 import "whatwg-fetch";
-import { HttpClientTestingModule, HttpTestingController } from "@angular/common/http/testing";
-import { TestBed } from "@angular/core/testing";
+
+let requestBody: Record<string, any> | null = null;
+const server = setupServer(
+  rest.post('/api/1.0/users', async (req, res, ctx) => {
+    requestBody = await req.json();
+    return res(ctx.status(200), ctx.json({}))
+  })
+);
+
+beforeAll(() => server.listen())
+
+afterAll(() => server.close())
+
 
 const setup = async () => {
   await render(SignUpComponent,
     {
-      imports: [HttpClientTestingModule]
+      imports: [HttpClientModule]
     });
 }
 
@@ -119,7 +133,6 @@ describe('SignUpComponent', () => {
     it('send username, email and password to backend after clicking the button', async () =>  {
       // Arrange
       await setup()
-      let httpTestingController = TestBed.inject(HttpTestingController)
       const PAYLOAD: SingUpInterface = {
         userName: 'llian',
         password: '1234',
@@ -140,9 +153,10 @@ describe('SignUpComponent', () => {
       await userEvent.click(button)
 
       // Assert
-      const _request = httpTestingController.expectOne('/api/1.0/users')
-      const requestBody = _request.request.body;
-      expect(requestBody).toEqual(PAYLOAD)
+
+      await waitFor(() => {
+        expect(requestBody).toEqual(PAYLOAD)
+      })
     })
   })
 })

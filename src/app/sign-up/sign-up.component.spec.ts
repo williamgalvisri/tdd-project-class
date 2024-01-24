@@ -1,5 +1,4 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-
 import { SignUpComponent } from './sign-up.component';
 import { SingUpInterface } from '../models/sign-up.model';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
@@ -83,7 +82,7 @@ describe('SignUpComponent', () => {
       const button = signUp.querySelector('button') as HTMLButtonElement;
 
       expect(button).toBeTruthy();
-      expect(button.textContent).toBe('Sign Up')
+      expect(button.textContent).toContain('Sign Up')
     })
 
     it('disables the button initially', () => {
@@ -95,22 +94,40 @@ describe('SignUpComponent', () => {
   })
 
   describe('Interactions', () => {
-    //enables button when password and password repeat fields have the same value
-    it('enables button when password and password repeat fields have the same value', async () => {
-      // Arrange
-      const DEFAULT_PASSWORD = '12345678';
-      const signUp = fixture.nativeElement as HTMLElement;
+    let httpTestingController: HttpTestingController;
+    let signUp: HTMLElement;
+    let button: HTMLButtonElement;
+    const PAYLOAD: SingUpInterface = {
+      userName: 'llian',
+      password: '1234',
+      email: 'test@email.com'
+    }
+
+    const setupForm = ({isWrongPassword}: {isWrongPassword: boolean} = { isWrongPassword: false }) => {
+      const WRONG_PASSWORD = '123456789';
+      httpTestingController = TestBed.inject(HttpTestingController)
+      signUp = fixture.nativeElement as HTMLElement;
+      const userName = signUp.querySelector('input[id="username"]') as HTMLInputElement;
+      const email = signUp.querySelector('input[id="email"]') as HTMLInputElement;
       const password = signUp.querySelector('input[id="password"]') as HTMLInputElement;
       const passwordRepeat = signUp.querySelector('input[id="passwordRepeat"]') as HTMLInputElement;
-      const button = signUp.querySelector('button') as HTMLButtonElement;
-
       // Act
-      //dispatch for execute eventes elements
-      password.value = DEFAULT_PASSWORD;
-      password.dispatchEvent(new Event('input'))
-      passwordRepeat.value = DEFAULT_PASSWORD;
-      passwordRepeat.dispatchEvent(new Event('input'))
+      userName.value = PAYLOAD.userName;
+      userName.dispatchEvent(new Event('input'))
+      email.value = PAYLOAD.email;
+      email.dispatchEvent(new Event('input'));
+      password.value = PAYLOAD.password;
+      password.dispatchEvent(new Event('input'));
+      passwordRepeat.value = isWrongPassword ? WRONG_PASSWORD : PAYLOAD.password;
+      passwordRepeat.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
 
+      button = signUp.querySelector('button') as HTMLButtonElement;
+    }
+    //enables button when password and password repeat fields have the same value
+    it('enables button when password and password repeat fields have the same value', async () => {
+      // build form configuration
+      setupForm()
       // by default test not trigger changes
       fixture.detectChanges();
       // Assert
@@ -119,20 +136,8 @@ describe('SignUpComponent', () => {
 
     //disable button when password and password repeat fields have the different value
     it('disable button when password and password repeat fields have the different value', async () => {
-      // Arrange
-      const DEFAULT_PASSWORD = '12345678';
-      const WERONG_PASSWORD = '123456789';
-      const signUp = fixture.nativeElement as HTMLElement;
-      const password = signUp.querySelector('input[id="password"]') as HTMLInputElement;
-      const passwordRepeat = signUp.querySelector('input[id="passwordRepeat"]') as HTMLInputElement;
-      const button = signUp.querySelector('button') as HTMLButtonElement;
-
-      // Act
-      //dispatch for execute eventes elements
-      password.value = DEFAULT_PASSWORD;
-      password.dispatchEvent(new Event('input'))
-      passwordRepeat.value = WERONG_PASSWORD;
-      passwordRepeat.dispatchEvent(new Event('input'))
+       // build form configuration and set a wrong password
+      setupForm({isWrongPassword: true})
 
       // by default test not trigger changes, then we need execute detectChanges
       fixture.detectChanges();
@@ -141,39 +146,34 @@ describe('SignUpComponent', () => {
     })
 
     it('send username, email and password to backend after clicking the button', () => {
-      // Arrange
-      let httpTestingController = TestBed.inject(HttpTestingController)
-      const PAYLOAD: SingUpInterface = {
-        userName: 'llian',
-        password: '1234',
-        email: 'test@email.com'
-      }
-      const signUp = fixture.nativeElement as HTMLElement;
-      const userName = signUp.querySelector('input[id="username"]') as HTMLInputElement;
-      const email = signUp.querySelector('input[id="email"]') as HTMLInputElement;
-      const password = signUp.querySelector('input[id="password"]') as HTMLInputElement;
-      const passwordRepeat = signUp.querySelector('input[id="passwordRepeat"]') as HTMLInputElement;
+      // build form configuration
+      setupForm()
 
-      const spy = spyOn(window, 'fetch');
-
-      // Act
-      userName.value = PAYLOAD.userName;
-      userName.dispatchEvent(new Event('input'))
-      email.value = PAYLOAD.email;
-      email.dispatchEvent(new Event('input'));
-      password.value = PAYLOAD.password;
-      password.dispatchEvent(new Event('input'));
-      passwordRepeat.value = PAYLOAD.password;
-      passwordRepeat.dispatchEvent(new Event('input'));
-      fixture.detectChanges();
-
-      const button = signUp.querySelector('button') as HTMLButtonElement;
       button?.click();
       const _request = httpTestingController.expectOne('/api/1.0/users')
       const requestBody = _request.request.body;
 
       // Assert
       expect(requestBody).toEqual(PAYLOAD);
+    })
+
+    it('disable button when there is an ongoin api call', () => {
+      // build form configuration
+      setupForm()
+      button?.click();
+      fixture.detectChanges();
+      button?.click();
+      httpTestingController.expectOne('/api/1.0/users')
+      expect(button.disabled).toBeTruthy()
+    })
+
+    it('display spinner after clicking the submit', () => {
+      // build form configuration
+      setupForm()
+      expect(signUp.querySelector('span[role="status"]')).toBeFalsy()
+      button?.click();
+      fixture.detectChanges();
+      expect(signUp.querySelector('span[role="status"]')).toBeTruthy()
     })
   })
 

@@ -1,7 +1,7 @@
 
 import { Component, OnInit } from '@angular/core';
 import { SingUpInterface } from '../models/sign-up.model';
-import { Observable } from 'rxjs';
+import { Observable, catchError, of, tap } from 'rxjs';
 import { HttpClient } from '@angular/common/http'
 
 type FormKeys = 'password' | 'passwordRepeat' | 'email' | 'userName'
@@ -16,6 +16,7 @@ export class SignUpComponent implements OnInit {
   public passwordRepeat: string = '';
   public userName: string = '';
   public email: string = '';
+  public pendingApiRequest: boolean = false;
 
   get isDisabled(): boolean{
     return this.password ? this.password !== this.passwordRepeat : true;
@@ -50,25 +51,20 @@ export class SignUpComponent implements OnInit {
     }
   }
 
-  async onSingUp() {
-    try {
-      const payload: SingUpInterface = {
-        userName: this.userName,
-        password: this.password,
-        email: this.email
-      }
-      const url = '/api/1.0/users';
-      // await fetch(url, {
-      //   method: 'POST',
-      //   body: JSON.stringify(payload),
-      //   headers: {
-      //     "Content-Type": "application/json"
-      //   }
-      // });
-      this.httpClient.post(url, payload).subscribe()
-    } catch (error) {
-      console.log(error);
+  onSingUp() {
+    this.pendingApiRequest = true;
+    const payload: SingUpInterface = {
+      userName: this.userName,
+      password: this.password,
+      email: this.email
     }
+    const url = '/api/1.0/users';
+    this.httpClient.post(url, payload).pipe(
+      catchError((error) => of(error)),
+      tap(() => {
+        this.pendingApiRequest = false;
+      })
+    ).subscribe()
   }
 
 }
