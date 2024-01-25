@@ -1,5 +1,5 @@
 <div class="col-lg-6 offset-lg-3 col-md-8 offset-md-2">
-  <div class="card">
+  <div class="card" data-testid="form-sign-up" *ngIf="!showSuccesMessage; else succesMessage">
     <section class="card-header text-center">
       <h1>Sign Up</h1>
     </section>
@@ -24,15 +24,20 @@
       <div class="text-center">
           <button
             class="btn btn-primary"
-            [disabled]="isDisabled || pendingApiRequest"
+            [disabled]="isDisabled || showPendingApiRequest"
           >
-            <span *ngIf="pendingApiRequest" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+            <span *ngIf="showPendingApiRequest" class="spinner-border spinner-border-sm" role="status"></span>
             Sign Up
           </button>
       </div>
     </form>
   </div>
 </div>
+<ng-template #succesMessage>
+  <div *ngIf="showSuccesMessage" class="alert alert-success" role="alert">
+    Please check yout e-mail to activate your account.
+  </div>
+</ng-template>
 
 
 

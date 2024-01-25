@@ -1,4 +1,4 @@
-import { render, screen, waitFor,  } from "@testing-library/angular";
+import { fireEvent, render, screen, waitFor,  } from "@testing-library/angular";
 import { SingUpInterface } from "../models/sign-up.model";
 import { HttpClientModule } from "@angular/common/http";
 import { SignUpComponent } from './sign-up.component';
@@ -8,12 +8,18 @@ import { rest } from 'msw';
 import "whatwg-fetch";
 
 let requestBody: Record<string, any> | null = null;
+let counter = 0;
 const server = setupServer(
   rest.post('/api/1.0/users', async (req, res, ctx) => {
+    counter +=1
     requestBody = await req.json();
     return res(ctx.status(200), ctx.json({}))
   })
 );
+
+beforeEach(() => {
+  counter = 0;
+});
 
 beforeAll(() => server.listen())
 
@@ -96,18 +102,33 @@ describe('SignUpComponent', () => {
 
   });
   describe('interactions',() => {
+    let button: HTMLElement;
+    const PAYLOAD: SingUpInterface = {
+      userName: 'llian',
+      password: '1234',
+      email: 'test@email.com'
+    }
+    const messageNotification = 'Please check yout e-mail to activate your account.';
+    const setupForm = async ({isWrongPassword}: {isWrongPassword: boolean} = { isWrongPassword: false }) => {
+      await setup()
+      const WRONG_PASSWORD = '123456789';
+
+      const userName = screen.getByLabelText('Username');
+      const email = screen.getByLabelText('E-mail');
+      const password = screen.getByLabelText('Password');
+      const passwordRepeat = screen.getByLabelText('Password Repeat');
+      button = screen.getByRole('button', { name: 'Sign Up' });
+
+      // Act
+      await userEvent.type(userName, PAYLOAD.userName);
+      await userEvent.type(email, PAYLOAD.email);
+      await userEvent.type(password, PAYLOAD.password);
+      await userEvent.type(passwordRepeat, isWrongPassword ? WRONG_PASSWORD : PAYLOAD.password);
+    }
     //enables button when password and password repeat fields have the same value
     it('enables button when password and password repeat fields have the same value', async () => {
       // Arrange
-      await setup()
-      const DEFAULT_PASSWORD = '12345678';
-      const password = screen.getByLabelText('Password');
-      const passwordRepeat = screen.getByLabelText('Password Repeat');
-      const button = screen.getByRole('button', { name: 'Sign Up' });
-
-      // Act
-      await userEvent.type(password, DEFAULT_PASSWORD);
-      await userEvent.type(passwordRepeat, DEFAULT_PASSWORD);
+      await setupForm()
 
       // Assert
       expect(button).not.toBeDisabled();
@@ -115,16 +136,7 @@ describe('SignUpComponent', () => {
 
     it('disable button when password and password repeat fields have the different value', async () => {
       // Arrange
-      await setup()
-      const DEFAULT_PASSWORD = '12345678';
-      const WRONG_PASSWORD = '123456789';
-      const password = screen.getByLabelText('Password');
-      const passwordRepeat = screen.getByLabelText('Password Repeat');
-      const button = screen.getByRole('button', { name: 'Sign Up' });
-
-      // Act
-      await userEvent.type(password, DEFAULT_PASSWORD);
-      await userEvent.type(passwordRepeat, WRONG_PASSWORD);
+      await setupForm({isWrongPassword: true})
 
       // Assert
       expect(button).toBeDisabled();
@@ -132,24 +144,7 @@ describe('SignUpComponent', () => {
 
     it('send username, email and password to backend after clicking the button', async () =>  {
       // Arrange
-      await setup()
-      const PAYLOAD: SingUpInterface = {
-        userName: 'llian',
-        password: '1234',
-        email: 'test@email.com'
-      }
-
-      const userName = screen.getByLabelText('Username');
-      const email = screen.getByLabelText('E-mail');
-      const password = screen.getByLabelText('Password');
-      const passwordRepeat = screen.getByLabelText('Password Repeat');
-      const button = screen.getByRole('button', { name: 'Sign Up' });
-
-      // Act
-      await userEvent.type(userName, PAYLOAD.userName);
-      await userEvent.type(email, PAYLOAD.email);
-      await userEvent.type(password, PAYLOAD.password);
-      await userEvent.type(passwordRepeat, PAYLOAD.password);
+      await setupForm()
       await userEvent.click(button)
 
       // Assert
@@ -157,6 +152,40 @@ describe('SignUpComponent', () => {
       await waitFor(() => {
         expect(requestBody).toEqual(PAYLOAD)
       })
+    })
+
+    it('disable button when there is an ongoin api call', async () => {
+      await setupForm()
+      await userEvent.click(button);
+      await fireEvent.click(button);
+
+      await waitFor(() => {
+        expect(counter).toBe(1)
+      })
+    })
+
+    it('display spinner after clicking the submit', async () => {
+      await setupForm();
+      expect(screen.queryByRole("status")).not.toBeInTheDocument();
+      await userEvent.click(button);
+      expect(screen.queryByRole("status")).toBeInTheDocument();
+    })
+
+    it('display account activation notification after successfull sign up request', async () => {
+      await setupForm();
+      expect(screen.queryByText(messageNotification)).not.toBeInTheDocument()
+      await userEvent.click(button);
+      const message = await screen.findByText(messageNotification)
+      expect(message).toBeInTheDocument()
+    })
+
+    it('hides sign up form after successful sign up request', async () => {
+      await setupForm();
+      const form = screen.getByTestId('form-sign-up')
+      expect(form).toBeInTheDocument();
+      await userEvent.click(button);
+      await screen.findByText(messageNotification);
+      expect(form).not.toBeInTheDocument()
     })
   })
 })

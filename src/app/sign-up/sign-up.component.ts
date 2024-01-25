@@ -16,7 +16,8 @@ export class SignUpComponent implements OnInit {
   public passwordRepeat: string = '';
   public userName: string = '';
   public email: string = '';
-  public pendingApiRequest: boolean = false;
+  public showPendingApiRequest: boolean = false;
+  public showSuccesMessage: boolean = false;
 
   get isDisabled(): boolean{
     return this.password ? this.password !== this.passwordRepeat : true;
@@ -52,7 +53,7 @@ export class SignUpComponent implements OnInit {
   }
 
   onSingUp() {
-    this.pendingApiRequest = true;
+    this.showPendingApiRequest = true;
     const payload: SingUpInterface = {
       userName: this.userName,
       password: this.password,
@@ -62,7 +63,8 @@ export class SignUpComponent implements OnInit {
     this.httpClient.post(url, payload).pipe(
       catchError((error) => of(error)),
       tap(() => {
-        this.pendingApiRequest = false;
+        this.showPendingApiRequest = false;
+        this.showSuccesMessage = true;
       })
     ).subscribe()
   }

@@ -124,6 +124,7 @@ describe('SignUpComponent', () => {
 
       button = signUp.querySelector('button') as HTMLButtonElement;
     }
+
     //enables button when password and password repeat fields have the same value
     it('enables button when password and password repeat fields have the same value', async () => {
       // build form configuration
@@ -174,6 +175,28 @@ describe('SignUpComponent', () => {
       button?.click();
       fixture.detectChanges();
       expect(signUp.querySelector('span[role="status"]')).toBeTruthy()
+    })
+
+    it('display account activation notification after successfull sign up request', () => {
+      // build form configuration
+      setupForm()
+      expect(signUp.querySelector('.alert-success')).toBeFalsy();
+      button?.click();
+      const request = httpTestingController.expectOne('/api/1.0/users')
+      request.flush({})
+      fixture.detectChanges();
+      const messsage = signUp.querySelector('.alert-success');
+      expect(messsage?.textContent).toContain('Please check yout e-mail to activate your account.')
+    })
+
+    it('hides sign up form after successful sign up request', () => {
+      setupForm()
+      expect(signUp.querySelector('div[data-testid="form-sign-up"]')).toBeTruthy()
+      button?.click();
+      const request = httpTestingController.expectOne('/api/1.0/users')
+      request.flush({})
+      fixture.detectChanges();
+      expect(signUp.querySelector('div[data-testid="form-sign-up"]')).toBeFalsy()
     })
   })
 
