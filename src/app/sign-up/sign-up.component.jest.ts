@@ -6,6 +6,8 @@ import userEvent from "@testing-library/user-event";
 import { setupServer } from 'msw/node';
 import { rest } from 'msw';
 import "whatwg-fetch";
+import { AlertComponent } from "../shared/alert/alert.component";
+import { SharedModule } from "../shared/shared.module";
 
 let requestBody: Record<string, any> | null = null;
 let counter = 0;
@@ -29,7 +31,7 @@ afterAll(() => server.close())
 const setup = async () => {
   await render(SignUpComponent,
     {
-      imports: [HttpClientModule]
+      imports: [HttpClientModule, SharedModule]
     });
 }
 

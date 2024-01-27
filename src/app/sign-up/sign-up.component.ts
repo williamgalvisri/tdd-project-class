@@ -3,6 +3,8 @@ import { Component, OnInit } from '@angular/core';
 import { SingUpInterface } from '../models/sign-up.model';
 import { Observable, catchError, of, tap } from 'rxjs';
 import { HttpClient } from '@angular/common/http'
+import { UserService } from '../core/user.service';
+import { t } from 'msw/lib/glossary-de6278a9';
 
 type FormKeys = 'password' | 'passwordRepeat' | 'email' | 'userName'
 
@@ -24,7 +26,7 @@ export class SignUpComponent implements OnInit {
   }
 
   constructor(
-    private httpClient: HttpClient
+    private userService: UserService
   ) {
 
   }
@@ -60,8 +62,7 @@ export class SignUpComponent implements OnInit {
       email: this.email
     }
     const url = '/api/1.0/users';
-    this.httpClient.post(url, payload).pipe(
-      catchError((error) => of(error)),
+    this.userService.singUp(url, payload).pipe(
       tap(() => {
         this.showPendingApiRequest = false;
         this.showSuccesMessage = true;

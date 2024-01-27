@@ -2,6 +2,9 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { SignUpComponent } from './sign-up.component';
 import { SingUpInterface } from '../models/sign-up.model';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
+import { AlertComponent } from '../shared/alert/alert.component';
+import { ButtonComponent } from '../shared/button/button.component';
+import { SharedModule } from '../shared/shared.module';
 
 describe('SignUpComponent', () => {
   let component: SignUpComponent;
@@ -10,7 +13,7 @@ describe('SignUpComponent', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       declarations: [SignUpComponent],
-      imports: [HttpClientTestingModule]
+      imports: [HttpClientTestingModule, SharedModule]
     });
     fixture = TestBed.createComponent(SignUpComponent);
     component = fixture.componentInstance;
