@@ -8,6 +8,7 @@ import { rest } from 'msw';
 import "whatwg-fetch";
 import { AlertComponent } from "../shared/alert/alert.component";
 import { SharedModule } from "../shared/shared.module";
+import { ReactiveFormsModule } from "@angular/forms";
 
 let requestBody: Record<string, any> | null = null;
 let counter = 0;
@@ -31,7 +32,7 @@ afterAll(() => server.close())
 const setup = async () => {
   await render(SignUpComponent,
     {
-      imports: [HttpClientModule, SharedModule]
+      imports: [HttpClientModule, SharedModule, ReactiveFormsModule]
     });
 }
 
@@ -188,6 +189,22 @@ describe('SignUpComponent', () => {
       await userEvent.click(button);
       await screen.findByText(messageNotification);
       expect(form).not.toBeInTheDocument()
+    })
+  })
+  describe('Validations', () => {
+
+    it.each`
+      label         | inputlValue | message
+      ${'Username'} | ${'{space}{backspace}'}       | ${'Username is required.'}
+      ${'Username'} | ${'123'}    | ${'Username must be at least 4 characters long.'}
+    `('displays $message when $label has the value "$inputlValue"', async ({label, inputlValue, message}) => {
+      await setup();
+
+      expect(screen.queryByText(message)).not.toBeInTheDocument();
+      const userNameInput = screen.getByLabelText(label);
+      await userEvent.type(userNameInput, inputlValue);
+      await userEvent.tab();
+      expect(screen.queryByText(message)).toBeInTheDocument();
     })
   })
 })

@@ -2,9 +2,8 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { SignUpComponent } from './sign-up.component';
 import { SingUpInterface } from '../models/sign-up.model';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
-import { AlertComponent } from '../shared/alert/alert.component';
-import { ButtonComponent } from '../shared/button/button.component';
 import { SharedModule } from '../shared/shared.module';
+import { ReactiveFormsModule } from '@angular/forms';
 
 describe('SignUpComponent', () => {
   let component: SignUpComponent;
@@ -13,7 +12,7 @@ describe('SignUpComponent', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       declarations: [SignUpComponent],
-      imports: [HttpClientTestingModule, SharedModule]
+      imports: [HttpClientTestingModule, SharedModule, ReactiveFormsModule]
     });
     fixture = TestBed.createComponent(SignUpComponent);
     component = fixture.componentInstance;
@@ -106,7 +105,7 @@ describe('SignUpComponent', () => {
       email: 'test@email.com'
     }
 
-    const setupForm = ({isWrongPassword}: {isWrongPassword: boolean} = { isWrongPassword: false }) => {
+    const setupForm = async ({isWrongPassword}: {isWrongPassword: boolean} = { isWrongPassword: false }) => {
       const WRONG_PASSWORD = '123456789';
       httpTestingController = TestBed.inject(HttpTestingController)
       signUp = fixture.nativeElement as HTMLElement;
@@ -115,6 +114,7 @@ describe('SignUpComponent', () => {
       const password = signUp.querySelector('input[id="password"]') as HTMLInputElement;
       const passwordRepeat = signUp.querySelector('input[id="passwordRepeat"]') as HTMLInputElement;
       // Act
+      await fixture.whenStable();
       userName.value = PAYLOAD.userName;
       userName.dispatchEvent(new Event('input'))
       email.value = PAYLOAD.email;
@@ -131,7 +131,7 @@ describe('SignUpComponent', () => {
     //enables button when password and password repeat fields have the same value
     it('enables button when password and password repeat fields have the same value', async () => {
       // build form configuration
-      setupForm()
+      await setupForm()
       // by default test not trigger changes
       fixture.detectChanges();
       // Assert
@@ -140,8 +140,8 @@ describe('SignUpComponent', () => {
 
     //disable button when password and password repeat fields have the different value
     it('disable button when password and password repeat fields have the different value', async () => {
-       // build form configuration and set a wrong password
-      setupForm({isWrongPassword: true})
+      // build form configuration and set a wrong password
+      await setupForm({isWrongPassword: true})
 
       // by default test not trigger changes, then we need execute detectChanges
       fixture.detectChanges();
@@ -149,9 +149,9 @@ describe('SignUpComponent', () => {
       expect(button?.disabled).toBeTruthy();
     })
 
-    it('send username, email and password to backend after clicking the button', () => {
+    it('send username, email and password to backend after clicking the button', async () => {
       // build form configuration
-      setupForm()
+      await setupForm()
 
       button?.click();
       const _request = httpTestingController.expectOne('/api/1.0/users')
@@ -161,9 +161,9 @@ describe('SignUpComponent', () => {
       expect(requestBody).toEqual(PAYLOAD);
     })
 
-    it('disable button when there is an ongoin api call', () => {
+    it('disable button when there is an ongoin api call', async () => {
       // build form configuration
-      setupForm()
+      await setupForm()
       button?.click();
       fixture.detectChanges();
       button?.click();
@@ -171,18 +171,18 @@ describe('SignUpComponent', () => {
       expect(button.disabled).toBeTruthy()
     })
 
-    it('display spinner after clicking the submit', () => {
+    it('display spinner after clicking the submit', async () => {
       // build form configuration
-      setupForm()
+      await setupForm()
       expect(signUp.querySelector('span[role="status"]')).toBeFalsy()
       button?.click();
       fixture.detectChanges();
       expect(signUp.querySelector('span[role="status"]')).toBeTruthy()
     })
 
-    it('display account activation notification after successfull sign up request', () => {
+    it('display account activation notification after successfull sign up request', async () => {
       // build form configuration
-      setupForm()
+      await setupForm()
       expect(signUp.querySelector('.alert-success')).toBeFalsy();
       button?.click();
       const request = httpTestingController.expectOne('/api/1.0/users')
@@ -192,8 +192,8 @@ describe('SignUpComponent', () => {
       expect(messsage?.textContent).toContain('Please check yout e-mail to activate your account.')
     })
 
-    it('hides sign up form after successful sign up request', () => {
-      setupForm()
+    it('hides sign up form after successful sign up request', async () => {
+      await setupForm()
       expect(signUp.querySelector('div[data-testid="form-sign-up"]')).toBeTruthy()
       button?.click();
       const request = httpTestingController.expectOne('/api/1.0/users')
@@ -201,6 +201,31 @@ describe('SignUpComponent', () => {
       fixture.detectChanges();
       expect(signUp.querySelector('div[data-testid="form-sign-up"]')).toBeFalsy()
     })
+  })
+
+  describe('Validations', () => {
+
+    const testCases = [
+      {field: 'username', value: '', error: 'Username is required.'},
+      {field: 'username', value: '123', error: 'Username must be at least 4 characters long.'}
+    ]
+
+    for (const {error, value, field} of testCases) {
+      it(`display ${error} when ${field} has ${value}`, () => {
+        const signUp = fixture.nativeElement as HTMLElement;
+        expect(signUp.querySelector(`div[data-testid="${field}-validation"]`)).toBeNull()
+        const userNameInput = signUp.querySelector(`input[id="${field}"]`) as HTMLInputElement;
+        userNameInput.value = value;
+        userNameInput?.dispatchEvent(new Event('input'));
+        userNameInput?.dispatchEvent(new Event('blur'));
+        fixture.detectChanges();
+  
+        const validationElement = signUp.querySelector(`div[data-testid="${field}-validation"]`);
+  
+        expect(validationElement?.textContent).toContain(error)
+  
+      })
+    }
   })
 
 });
