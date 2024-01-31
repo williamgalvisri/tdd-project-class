@@ -10,6 +10,10 @@ import { AlertComponent } from "../shared/alert/alert.component";
 import { SharedModule } from "../shared/shared.module";
 import { ReactiveFormsModule } from "@angular/forms";
 
+type UniqueEmailCheck = {
+  email: string
+}
+
 let requestBody: Record<string, any> | null = null;
 let counter = 0;
 const server = setupServer(
@@ -17,6 +21,13 @@ const server = setupServer(
     counter +=1
     requestBody = await req.json();
     return res(ctx.status(200), ctx.json({}))
+  }),
+  rest.post('/api/1.0/users/email', async (req, res, ctx) => {
+    requestBody = (await req.json()) as UniqueEmailCheck ;
+    if(requestBody["email"] === 'non-unique-email@mail.com') {
+      return res(ctx.status(200), ctx.json({}))
+    }
+    return res(ctx.status(404), ctx.json({}));
   })
 );
 
@@ -24,7 +35,7 @@ beforeEach(() => {
   counter = 0;
 });
 
-beforeAll(() => server.listen())
+beforeAll(() => server.listen({ onUnhandledRequest: "bypass" }))
 
 afterAll(() => server.close())
 
@@ -194,9 +205,18 @@ describe('SignUpComponent', () => {
   describe('Validations', () => {
 
     it.each`
-      label         | inputlValue | message
-      ${'Username'} | ${'{space}{backspace}'}       | ${'Username is required.'}
-      ${'Username'} | ${'123'}    | ${'Username must be at least 4 characters long.'}
+      label               | inputlValue                   | message
+      ${'Username'}       | ${'{space}{backspace}'}       | ${'Username is required.'}
+      ${'Username'}       | ${'123'}                      | ${'Username must be at least 4 characters long.'}
+      ${'E-mail'}         | ${'{space}{backspace}'}       | ${'E-mail is required.'}
+      ${'E-mail'}         | ${'wrong-email'}              | ${'The E-mail must be valid email format.'}
+      ${'E-mail'}         | ${'non-unique-email@mail.com'}| ${'E-mail in use.'}
+      ${'Password'}       | ${'{space}{backspace}'}       | ${'Password is required.'}
+      ${'Password'}       | ${'password'}                 | ${'Password must have at least 1 uppercase, 1 lowercase letter and 1 number.'}
+      ${'Password'}       | ${'PASSWORD123'}              | ${'Password must have at least 1 uppercase, 1 lowercase letter and 1 number.'}
+      ${'Password'}       | ${'pass123'}                  | ${'Password must have at least 1 uppercase, 1 lowercase letter and 1 number.'}
+      ${'Password'}       | ${'password43'}               | ${'Password must have at least 1 uppercase, 1 lowercase letter and 1 number.'}
+      ${'Password Repeat'}| ${'pass'}                     | ${'Password mismatch.'}
     `('displays $message when $label has the value "$inputlValue"', async ({label, inputlValue, message}) => {
       await setup();
 
@@ -204,7 +224,8 @@ describe('SignUpComponent', () => {
       const userNameInput = screen.getByLabelText(label);
       await userEvent.type(userNameInput, inputlValue);
       await userEvent.tab();
-      expect(screen.queryByText(message)).toBeInTheDocument();
+      const errorMessage = await screen.findByText(message);
+      expect(errorMessage).toBeInTheDocument();
     })
   })
 })

@@ -1,13 +1,11 @@
 
 import { Component, OnInit } from '@angular/core';
 import { SingUpInterface } from '../models/sign-up.model';
-import { Observable, catchError, of, tap } from 'rxjs';
-import { HttpClient } from '@angular/common/http'
+import { tap } from 'rxjs';
 import { UserService } from '../core/user.service';
-import { t } from 'msw/lib/glossary-de6278a9';
-import { AbstractControl, FormControl, FormGroup, Validators } from '@angular/forms';
-
-type FormKeys = 'password' | 'passwordRepeat' | 'email' | 'userName'
+import { AbstractControl, FormControl, FormGroup, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
+import { passwordMatchValidators } from './password-match.validator';
+import { UniqueEmailValidator } from './unique-email.validatos';
 
 @Component({
   selector: 'app-sign-up',
@@ -17,10 +15,16 @@ type FormKeys = 'password' | 'passwordRepeat' | 'email' | 'userName'
 export class SignUpComponent implements OnInit {
 
   public formGroup: FormGroup = new FormGroup({
-    password: new FormControl(''),
+    password: new FormControl('', [Validators.required, Validators.pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).*$/)]),
     passwordRepeat: new FormControl(''),
     userName: new FormControl('', [Validators.required, Validators.minLength(4)]),
-    email: new FormControl(''),
+    email: new FormControl('', {
+      validators: [Validators.required, Validators.email],
+      asyncValidators: [this.uniqueEmailValidator.validate.bind(this.uniqueEmailValidator)],
+      updateOn: 'blur'
+    }),
+  }, {
+    validators: passwordMatchValidators
   })
 
   public showPendingApiRequest = false;
@@ -32,20 +36,59 @@ export class SignUpComponent implements OnInit {
 
 
   get getUserNameError() {
-    if(this.formGroup.get('userName')?.errors && (this.formGroup.get('userName')?.touched || this.formGroup.get('userName')?.dirty )){
-      if(this.formGroup.get('userName')?.errors?.['required']) {
+    const control = this.formGroup.get('userName');
+    if(control?.errors && (control?.touched || control?.dirty )){
+      if(control?.errors?.['required']) {
         return "Username is required."
       }
-
-      if(this.formGroup.get('userName')?.errors?.['minlength']){
+      if(control?.errors?.['minlength']){
         return "Username must be at least 4 characters long."
       }
     }
     return ""
   }
 
+  get getEmailError() {
+    const control = this.formGroup.get('email');
+    if(control?.errors && (control?.touched || control?.dirty)){
+      if(control?.errors?.['required']) {
+        return "E-mail is required."
+      }
+      if(control?.errors?.['email']){
+        return "The E-mail must be valid email format."
+      }
+      if(control?.errors?.['uniqueEmail']){
+        return "E-mail in use."
+      }
+    }
+    return ""
+  }
+
+  get getPasswordError() {
+    const control = this.formGroup.get('password')
+    if(control?.errors && (control?.touched || control?.dirty)){
+      if(control?.errors?.['required']) {
+        return "Password is required."
+      }
+      if(control?.errors?.['pattern']) {
+        return "Password must have at least 1 uppercase, 1 lowercase letter and 1 number."
+      }
+    }
+    return ""
+  }
+
+  get getPasswordRepeatError() {
+    if(this.formGroup.errors && (this.formGroup.touched || this.formGroup.dirty)){ 
+      if(this.formGroup.errors?.['passwordMatch']) {
+        return "Password mismatch."
+      }
+    }
+    return ""
+  }
+
   constructor(
-    private userService: UserService
+    private userService: UserService,
+    private uniqueEmailValidator: UniqueEmailValidator
   ) {
 
   }

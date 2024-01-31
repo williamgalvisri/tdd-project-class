@@ -102,7 +102,7 @@ describe('SignUpComponent', () => {
     const PAYLOAD: SingUpInterface = {
       userName: 'llian',
       password: '1234',
-      email: 'test@email.com'
+      email: 'user1@mail.com'
     }
 
     const setupForm = async ({isWrongPassword}: {isWrongPassword: boolean} = { isWrongPassword: false }) => {
@@ -119,6 +119,7 @@ describe('SignUpComponent', () => {
       userName.dispatchEvent(new Event('input'))
       email.value = PAYLOAD.email;
       email.dispatchEvent(new Event('input'));
+      email.dispatchEvent(new Event('blur'));
       password.value = PAYLOAD.password;
       password.dispatchEvent(new Event('input'));
       passwordRepeat.value = isWrongPassword ? WRONG_PASSWORD : PAYLOAD.password;
@@ -207,7 +208,15 @@ describe('SignUpComponent', () => {
 
     const testCases = [
       {field: 'username', value: '', error: 'Username is required.'},
-      {field: 'username', value: '123', error: 'Username must be at least 4 characters long.'}
+      {field: 'username', value: '123', error: 'Username must be at least 4 characters long.'},
+      {field: 'email', value: '', error: 'E-mail is required.'},
+      {field: 'email', value: 'wrong-email', error: 'The E-mail must be valid email format.'},
+      {field: 'password', value: '', error: 'Password is required.'},
+      {field: 'password', value: 'password', error: 'Password must have at least 1 uppercase, 1 lowercase letter and 1 number.'},
+      {field: 'password', value: 'passWORD', error: 'Password must have at least 1 uppercase, 1 lowercase letter and 1 number.'},
+      {field: 'password', value: '122345', error: 'Password must have at least 1 uppercase, 1 lowercase letter and 1 number.'},
+      {field: 'password', value: 'pass1234', error: 'Password must have at least 1 uppercase, 1 lowercase letter and 1 number.'},
+      {field: 'passwordRepeat', value: 'pass', error: 'Password mismatch.'}
     ]
 
     for (const {error, value, field} of testCases) {
@@ -226,6 +235,29 @@ describe('SignUpComponent', () => {
   
       })
     }
+
+    it('Display E-mail in use when email is not unique', async ()=> {
+      let httpTestingController = TestBed.inject(HttpTestingController);
+      const signUp = fixture.nativeElement as HTMLElement;
+      expect(signUp.querySelector(`div[data-testid="email-validation"]`)).toBeNull()
+      const userNameInput = signUp.querySelector(`input[id="email"]`) as HTMLInputElement;
+      userNameInput.value = 'non-unique-email@mail.com';
+      userNameInput?.dispatchEvent(new Event('input'));
+      userNameInput?.dispatchEvent(new Event('blur'));
+
+      const request = httpTestingController.expectOne(({url, method, body}) => {
+        if(url === '/api/1.0/user/email' && method === 'POST') {
+          return body.email === 'non-unique-email@mail.com'
+        }
+        return false;
+      })
+      request.flush({});
+      fixture.detectChanges();
+
+      const validationElement = signUp.querySelector(`div[data-testid="email-validation"]`);
+
+      expect(validationElement?.textContent).toContain("E-mail in use.")
+    })
   })
 
 });
