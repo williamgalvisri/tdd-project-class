@@ -6,6 +6,7 @@ import { UserService } from '../core/user.service';
 import { AbstractControl, FormControl, FormGroup, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
 import { passwordMatchValidators } from './password-match.validator';
 import { UniqueEmailValidator } from './unique-email.validatos';
+import { HttpErrorResponse } from '@angular/common/http';
 
 @Component({
   selector: 'app-sign-up',
@@ -60,6 +61,9 @@ export class SignUpComponent implements OnInit {
       if(control?.errors?.['uniqueEmail']){
         return "E-mail in use."
       }
+      if(control?.errors?.['backend']){
+        return control?.errors?.['backend']
+      }
     }
     return ""
   }
@@ -112,9 +116,15 @@ export class SignUpComponent implements OnInit {
     }
     const url = '/api/1.0/users';
     this.userService.singUp(url, payload).pipe(
-      tap(() => {
-        this.showPendingApiRequest = false;
-        this.showSuccesMessage = true;
+      tap({
+        next: () => {
+          this.showPendingApiRequest = false;
+          this.showSuccesMessage = true;
+        },
+        error: (httpError: HttpErrorResponse) => {
+          const emailValidationErrorMessage = httpError.error.validationErrors.email;
+          this.formGroup.get('email')?.setErrors({backend: emailValidationErrorMessage})
+        }
       })
     ).subscribe()
   }

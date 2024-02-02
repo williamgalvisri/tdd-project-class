@@ -11,9 +11,7 @@ export class UserService {
   constructor(private httpClient: HttpClient) { }
 
   singUp(url: string, payload: SingUpInterface) {
-    return this.httpClient.post(url, payload).pipe(
-      catchError((error) => of(error))
-    )
+    return this.httpClient.post(url, payload)
   }
 
   isEmailTaken(value: string) {

@@ -102,7 +102,7 @@ describe('SignUpComponent', () => {
     const PAYLOAD: SingUpInterface = {
       userName: 'llian',
       password: '1234',
-      email: 'user1@mail.com'
+      email: 'user30@mail.com'
     }
 
     const setupForm = async ({isWrongPassword}: {isWrongPassword: boolean} = { isWrongPassword: false }) => {
@@ -202,6 +202,21 @@ describe('SignUpComponent', () => {
       fixture.detectChanges();
       expect(signUp.querySelector('div[data-testid="form-sign-up"]')).toBeFalsy()
     })
+
+    it('display validation error coming from backend after submit failure.', async () => {
+      await setupForm()
+      button.click();
+      const request = httpTestingController.expectOne('/api/1.0/users');
+      request.flush({
+        validationErrors: { email: 'E-mail in use.' }
+      }, {
+        status: 400,
+        statusText: 'Bad Request'
+      });
+      fixture.detectChanges();
+      const validationElement = signUp.querySelector(`div[data-testid="email-validation"]`);
+      expect(validationElement?.textContent).toContain("E-mail in use.")
+    })
   })
 
   describe('Validations', () => {
@@ -258,6 +273,7 @@ describe('SignUpComponent', () => {
 
       expect(validationElement?.textContent).toContain("E-mail in use.")
     })
+
   })
 
 });

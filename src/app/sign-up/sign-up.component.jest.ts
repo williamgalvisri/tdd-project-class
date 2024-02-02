@@ -18,8 +18,13 @@ let requestBody: Record<string, any> | null = null;
 let counter = 0;
 const server = setupServer(
   rest.post('/api/1.0/users', async (req, res, ctx) => {
-    counter +=1
     requestBody = await req.json();
+    counter +=1
+    if(requestBody?.['email'] === 'not-unique@mail.com') {
+      return res(ctx.status(400), ctx.json({
+        validationErrors: { email: 'E-mail in use'}
+      }))
+    }
     return res(ctx.status(200), ctx.json({}))
   }),
   rest.post('/api/1.0/users/email', async (req, res, ctx) => {
@@ -119,11 +124,11 @@ describe('SignUpComponent', () => {
     let button: HTMLElement;
     const PAYLOAD: SingUpInterface = {
       userName: 'llian',
-      password: '1234',
+      password: 'Lliang1997',
       email: 'test@email.com'
     }
     const messageNotification = 'Please check yout e-mail to activate your account.';
-    const setupForm = async ({isWrongPassword}: {isWrongPassword: boolean} = { isWrongPassword: false }) => {
+    const setupForm = async ({isWrongPassword, _email}: {isWrongPassword?: boolean, _email?: string} = { isWrongPassword: false }) => {
       await setup()
       const WRONG_PASSWORD = '123456789';
 
@@ -135,7 +140,7 @@ describe('SignUpComponent', () => {
 
       // Act
       await userEvent.type(userName, PAYLOAD.userName);
-      await userEvent.type(email, PAYLOAD.email);
+      await userEvent.type(email, _email || PAYLOAD.email);
       await userEvent.type(password, PAYLOAD.password);
       await userEvent.type(passwordRepeat, isWrongPassword ? WRONG_PASSWORD : PAYLOAD.password);
     }
@@ -201,6 +206,14 @@ describe('SignUpComponent', () => {
       await screen.findByText(messageNotification);
       expect(form).not.toBeInTheDocument()
     })
+
+    it('display validation error coming from backend after submit failure.', async () => {
+      await setupForm({_email: 'not-unique@mail.com'});
+      await userEvent.click(button)
+      const errorMessage = await screen.findByText('E-mail in use');
+
+      expect(errorMessage).toBeInTheDocument()
+    }) 
   })
   describe('Validations', () => {
 
