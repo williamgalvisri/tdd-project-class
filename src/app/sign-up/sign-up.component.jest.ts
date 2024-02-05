@@ -22,7 +22,7 @@ const server = setupServer(
     counter +=1
     if(requestBody?.['email'] === 'not-unique@mail.com') {
       return res(ctx.status(400), ctx.json({
-        validationErrors: { email: 'E-mail in use'}
+        validationErrors: { email: 'E-mail in use.'}
       }))
     }
     return res(ctx.status(200), ctx.json({}))
@@ -40,7 +40,13 @@ beforeEach(() => {
   counter = 0;
 });
 
-beforeAll(() => server.listen({ onUnhandledRequest: "bypass" }))
+beforeAll(() => server.listen({
+  onUnhandledRequest: 'error',
+}))
+
+afterEach(() => {
+  server.resetHandlers();
+})
 
 afterAll(() => server.close())
 
@@ -210,7 +216,7 @@ describe('SignUpComponent', () => {
     it('display validation error coming from backend after submit failure.', async () => {
       await setupForm({_email: 'not-unique@mail.com'});
       await userEvent.click(button)
-      const errorMessage = await screen.findByText('E-mail in use');
+      const errorMessage = await screen.findByText('E-mail in use.');
 
       expect(errorMessage).toBeInTheDocument()
     }) 
