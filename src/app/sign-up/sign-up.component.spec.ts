@@ -101,7 +101,7 @@ describe('SignUpComponent', () => {
     let button: HTMLButtonElement;
     const PAYLOAD: SingUpInterface = {
       userName: 'llian',
-      password: '1234',
+      password: 'P4ssword',
       email: 'user30@mail.com'
     }
 
@@ -162,6 +162,11 @@ describe('SignUpComponent', () => {
       expect(requestBody).toEqual(PAYLOAD);
     })
 
+    it('enabels the button when all the filed  have valid input', async () => {
+      await setupForm();
+      expect(button?.disabled).toBeFalsy();
+    })
+
     it('disable button when there is an ongoin api call', async () => {
       // build form configuration
       await setupForm()
@@ -216,6 +221,20 @@ describe('SignUpComponent', () => {
       fixture.detectChanges();
       const validationElement = signUp.querySelector(`div[data-testid="email-validation"]`);
       expect(validationElement?.textContent).toContain("E-mail in use.")
+    })
+
+    it('hide spinner after sign up request fails', async () => {
+      await setupForm()
+      button.click();
+      const request = httpTestingController.expectOne('/api/1.0/users');
+      request.flush({
+        validationErrors: { email: 'E-mail in use.' }
+      }, {
+        status: 400,
+        statusText: 'Bad Request'
+      });
+      fixture.detectChanges();
+      expect(signUp.querySelector('span[role="status"]')).toBeFalsy()
     })
   })
 

@@ -32,7 +32,16 @@ export class SignUpComponent implements OnInit {
   public showSuccesMessage = false;
 
   get isDisabled(): boolean{
-    return this.getFormControl('password').value ? this.getFormControl('password').value !== this.getFormControl('passwordRepeat').value : true;
+    const formFilled = this.getFormControl('userName').value 
+     && this.getFormControl('email').value
+     && this.getFormControl('password').value
+     && this.getFormControl('passwordRepeat').value
+    const validationError = this.getUserNameError 
+      || this.getEmailError 
+      || this.getPasswordError 
+      || this.getPasswordRepeatError
+
+    return (!formFilled || validationError) ? true : false
   }
 
 
@@ -124,6 +133,7 @@ export class SignUpComponent implements OnInit {
         error: (httpError: HttpErrorResponse) => {
           const emailValidationErrorMessage = httpError.error.validationErrors.email;
           this.formGroup.get('email')?.setErrors({backend: emailValidationErrorMessage})
+          this.showPendingApiRequest = false;
         }
       })
     ).subscribe()

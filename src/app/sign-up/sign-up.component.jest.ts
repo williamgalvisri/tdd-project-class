@@ -38,10 +38,11 @@ const server = setupServer(
 
 beforeEach(() => {
   counter = 0;
+  server.resetHandlers();
 });
 
 beforeAll(() => server.listen({
-  onUnhandledRequest: 'error',
+  onUnhandledRequest: 'bypass',
 }))
 
 afterEach(() => {
@@ -129,9 +130,9 @@ describe('SignUpComponent', () => {
   describe('interactions',() => {
     let button: HTMLElement;
     const PAYLOAD: SingUpInterface = {
-      userName: 'llian',
-      password: 'Lliang1997',
-      email: 'test@email.com'
+      userName: 'user30',
+      password: 'P4ssword',
+      email: 'user30@mail.com'
     }
     const messageNotification = 'Please check yout e-mail to activate your account.';
     const setupForm = async ({isWrongPassword, _email}: {isWrongPassword?: boolean, _email?: string} = { isWrongPassword: false }) => {
@@ -219,7 +220,18 @@ describe('SignUpComponent', () => {
       const errorMessage = await screen.findByText('E-mail in use.');
 
       expect(errorMessage).toBeInTheDocument()
-    }) 
+    })
+    it('enabels the button when all the filed have valid input', async () => {
+      await setupForm();
+      expect(button).toBeEnabled();
+    })
+    it('hide spinner after sign up request fails', async () => {
+      await setupForm({_email: 'not-unique@mail.com'});
+      await userEvent.click(button)
+      await screen.findByText('E-mail in use.');
+
+      expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    })
   })
   describe('Validations', () => {
 
