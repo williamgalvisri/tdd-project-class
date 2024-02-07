@@ -22,7 +22,7 @@ const server = setupServer(
     counter +=1
     if(requestBody?.['email'] === 'not-unique@mail.com') {
       return res(ctx.status(400), ctx.json({
-        validationErrors: { email: 'E-mail in use.'}
+        validationErrors: { email: 'E-mail in u'}
       }))
     }
     return res(ctx.status(200), ctx.json({}))
@@ -38,16 +38,13 @@ const server = setupServer(
 
 beforeEach(() => {
   counter = 0;
-  server.resetHandlers();
 });
+afterEach(() => server.resetHandlers());
 
 beforeAll(() => server.listen({
-  onUnhandledRequest: 'bypass',
+  onUnhandledRequest: 'error',
 }))
 
-afterEach(() => {
-  server.resetHandlers();
-})
 
 afterAll(() => server.close())
 
