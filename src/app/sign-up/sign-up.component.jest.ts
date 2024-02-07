@@ -22,7 +22,7 @@ const server = setupServer(
     counter +=1
     if(requestBody?.['email'] === 'not-unique@mail.com') {
       return res(ctx.status(400), ctx.json({
-        validationErrors: { email: 'E-mail in u'}
+        validationErrors: { email: 'E-mail in use.'}
       }))
     }
     return res(ctx.status(200), ctx.json({}))
